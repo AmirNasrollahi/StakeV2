@@ -119,6 +119,7 @@ contract StakeV2 is ReentrancyGuard{
         require(_amount!=0,'Amount must be gratter then zero');
         require((Stake[msg.sender].amount +_reward)>=_amount,'You dont have enough token in contract to withdraw');
 
+        Stake[msg.sender].amount +=_reward;
         Stake[msg.sender].amount -= _amount;
         Stake[msg.sender].stakeTime=block.timestamp;
 

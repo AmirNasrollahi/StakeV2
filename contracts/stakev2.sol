@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
 
 library SafeMath {
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -82,6 +83,8 @@ contract StakeV2 is ReentrancyGuard{
 
     mapping (address=>StakeInfo) public Stake;
 
+    event stakeToConract(address _account,uint256 _amount,uint256 _stakeTime);
+
     constructor(uint256 _timeReward,uint256 _rewardPercent,address _token){
         timeReward=_timeReward;
         rewardPercent=_rewardPercent;
@@ -94,11 +97,17 @@ contract StakeV2 is ReentrancyGuard{
         _;
     }
 
+    function approveContract(uint256 _amount) public{
+        require(IERC20(token).approve(address(this), _amount));
+    }
+
     function stake(uint256 _amount) public{
-        require(_amount!=0,'');
+        require(_amount!=0,'Amount must be greater than zero');
         Stake[msg.sender]=StakeInfo(_amount,block.timestamp);
 
         IERC20(token).transferFrom(msg.sender,address(this),_amount);
+
+        emit stakeToConract(msg.sender, _amount, block.timestamp);
     }
 
     function unSatke() public nonReentrant{
@@ -163,8 +172,16 @@ contract StakeV2 is ReentrancyGuard{
     function getOwner() public view returns(address){
         return owner;
     }
+    
+    function getToken() public view returns(address){
+        return token;
+    }
 
-    function _dayRewardCalc(uint256 _stakeTime) public returns(uint256){
+    // function contractBalance()public view returns(uint256){
+    //     return IERC20(token).balanceOf(address(this));
+    // }
+
+    function _dayRewardCalc(uint256 _stakeTime) public view returns(uint256){
         uint256 stakeTime=((((_stakeTime /1000)/60)/60)/24);
         uint256 realTime=((((block.timestamp /1000)/60)/60)/24);
         uint256 dayReward= SafeMath.div((realTime-stakeTime), timeReward);

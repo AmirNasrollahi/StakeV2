@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-
+import "hardhat/console.sol";
 
 library SafeMath {
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -83,7 +83,7 @@ contract StakeV2 is ReentrancyGuard{
 
     mapping (address=>StakeInfo) public Stake;
 
-    event stakeToConract(address _account,uint256 _amount,uint256 _stakeTime);
+    event stakeConract(address _account,uint256 _amount,uint256 _stakeTime);
 
     constructor(uint256 _timeReward,uint256 _rewardPercent,address _token){
         timeReward=_timeReward;
@@ -98,16 +98,16 @@ contract StakeV2 is ReentrancyGuard{
     }
 
     function approveContract(uint256 _amount) public{
-        require(IERC20(token).approve(address(this), _amount));
+        require(IERC20(token).approve(address(this), _amount),'Approval failed');
     }
 
     function stake(uint256 _amount) public{
         require(_amount!=0,'Amount must be greater than zero');
+
+        require(IERC20(token).transferFrom(msg.sender,address(this),_amount),'Stake failed');
         Stake[msg.sender]=StakeInfo(_amount,block.timestamp);
 
-        IERC20(token).transferFrom(msg.sender,address(this),_amount);
-
-        emit stakeToConract(msg.sender, _amount, block.timestamp);
+        emit stakeConract(msg.sender, _amount, block.timestamp);
     }
 
     function unSatke() public nonReentrant{
@@ -177,9 +177,9 @@ contract StakeV2 is ReentrancyGuard{
         return token;
     }
 
-    // function contractBalance()public view returns(uint256){
-    //     return IERC20(token).balanceOf(address(this));
-    // }
+    function contractBalance()public view returns(uint256){
+        return IERC20(token).balanceOf(address(this));
+    }
 
     function _dayRewardCalc(uint256 _stakeTime) public view returns(uint256){
         uint256 stakeTime=((((_stakeTime /1000)/60)/60)/24);
